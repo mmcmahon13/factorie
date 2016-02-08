@@ -26,7 +26,7 @@ import java.io.Serializable
 import cc.factorie.app.nlp.Token
 import cc.factorie.app.nlp.lemma.Lemmatizer
 import cc.factorie.util.{JavaHashSet, Logger}
-import cc.factorie.variable.CategoricalVectorVar
+import cc.factorie.variable.{CategoricalVariable, CategoricalVectorVar}
 
 import scala.collection.mutable.Set
 
@@ -126,11 +126,60 @@ class AhoCorasick(val sep : String) extends Serializable {
     innerTagMentions(input,featureFunc,tag,((t : Token) => t.string))
   }
 
+  def labelMentions(input : Seq[Token], featureFunc : ((Token,String) => CategoricalVariable[String])) : Unit = {
+    innerLabelMentions(input,featureFunc,((t : Token) => t.string))
+  }
+
   /**
    * Tags a Token's features with a specific tag, if it's context forms a phrase in the trie, after lemmatizing each token.
    */
   def lemmatizeAndTagMentions(input : Seq[Token], featureFunc : (Token => CategoricalVectorVar[String]), tag : String, lemmatizer : Lemmatizer) : Unit = {
     innerTagMentions(input,featureFunc,tag,(t:Token) => lemmatizer.lemmatize(t.string))
+  }
+
+  /** Inner function which tags tokens, after applying the supplied lemmatizeFunc. uses given feature function to do so.
+    * Modified version - created by mmcmahon */
+  private def innerLabelMentions(input : Seq[Token], featureFunc : ((Token, String) => CategoricalVariable[String]),
+                                  lemmatizeFunc : (Token => String)) : Unit = {
+    if (!constructed) {
+      setTransitions()
+    }
+    var i = 0
+    var curNode = root
+    while (i < input.length) {
+      val tokenString : String = lemmatizeFunc(input(i))
+      //logger.log(Level.INFO)("Head = " + head + ", idx = " + i + ", label = " + curNode.label)
+      val next = curNode.lookupToken(tokenString)
+      if (next != None) {
+        curNode = next.get
+        i = i + 1
+      } else if (curNode != root) {
+        curNode = curNode.failNode
+      } else {
+        curNode = curNode.failNode
+        i = i + 1
+      }
+      if (curNode.getEmit) {
+        //annotate tokens
+        var j = i - 1
+        while (j >= (i - curNode.getEmitDepth)) {
+          // TODO: fix this to figure out what location the token is in
+          if(j == input.length-1){
+            // token is at the end of the phrase
+            input(j).attr += featureFunc(input(j), "L")
+          } else if(j == 0) {
+            // token is at the beginning of the phrase
+            input(j).attr += featureFunc(input(j), "B")
+          } else {
+            // token is in the middle of the phrase
+            input(j).attr += featureFunc(input(j), "I")
+          }
+          //logger.log(Logger.INFO)("Tagging text " + input(j))
+          j = j - 1
+        }
+      }
+      //TODO: add something to tag the non-phrase tokens?
+    }
   }
 
   /** Inner function which tags tokens, after applying the supplied lemmatizeFunc. */

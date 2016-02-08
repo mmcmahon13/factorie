@@ -16,7 +16,7 @@ package cc.factorie.app.nlp.lexicon
 import cc.factorie.app.nlp.{Token, TokenSpan}
 import cc.factorie.app.nlp.lemma.{Lemmatizer, LowercaseLemmatizer}
 import cc.factorie.app.strings.StringSegmenter
-import cc.factorie.variable.CategoricalVectorVar
+import cc.factorie.variable.{CategoricalVariable, CategoricalVectorVar}
 
 import scala.collection.mutable.{ArrayBuffer, HashMap}
 import scala.io.Source
@@ -197,6 +197,10 @@ class TriePhraseLexicon(val name: String, val tokenizer: StringSegmenter = cc.fa
   /** Tags each token with the specified tag, if it is present in the lexicon */
   def tagLemmatizedText(tokens : Seq[Token], featureFunc : (Token => CategoricalVectorVar[String]), tag : String) : Unit = {
     trie.tagMentions(tokens,featureFunc,tag)
+  }
+
+  def labelLemmatizedText(tokens : Seq[Token], featureFunc : (Token,String) => CategoricalVariable[String]) : Unit = {
+    trie.labelMentions(tokens,featureFunc)
   }
 
   /** Tags each token with the specified tag, if the lemmatized form is present in the lexicon */
