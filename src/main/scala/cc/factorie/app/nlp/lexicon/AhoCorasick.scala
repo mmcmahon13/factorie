@@ -127,7 +127,11 @@ class AhoCorasick(val sep : String) extends Serializable {
   }
 
   def labelMentions(input : Seq[Token], featureFunc : ((Token,String) => CategoricalVariable[String])) : Unit = {
-    innerLabelMentions(input,featureFunc,((t : Token) => t.string))
+    innerLabelMentions(input,featureFunc,((t : Token) => t.string.toLowerCase))
+  }
+
+  def lemmatizeAndLabelMentions(input : Seq[Token], featureFunc : ((Token,String) => CategoricalVariable[String]), lemmatizer: Lemmatizer) : Unit = {
+    innerLabelMentions(input,featureFunc, (t:Token) => lemmatizer.lemmatize(t.string))
   }
 
   /**
@@ -163,11 +167,10 @@ class AhoCorasick(val sep : String) extends Serializable {
         //annotate tokens
         var j = i - 1
         while (j >= (i - curNode.getEmitDepth)) {
-          // TODO: fix this to figure out what location the token is in
-          if(j == input.length-1){
+          if(j == i-1){
             // token is at the end of the phrase
             input(j).attr += featureFunc(input(j), "L")
-          } else if(j == 0) {
+          } else if(j == i - curNode.getEmitDepth) {
             // token is at the beginning of the phrase
             input(j).attr += featureFunc(input(j), "B")
           } else {

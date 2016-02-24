@@ -204,6 +204,11 @@ class TriePhraseLexicon(val name: String, val tokenizer: StringSegmenter = cc.fa
   }
 
   /** Tags each token with the specified tag, if the lemmatized form is present in the lexicon */
+  def labelText(tokens : Seq[Token], featureFunc : (Token,String) => CategoricalVariable[String]) : Unit = {
+    trie.lemmatizeAndLabelMentions(tokens, featureFunc,lemmatizer)
+  }
+
+  /** Tags each token with the specified tag, if the lemmatized form is present in the lexicon */
   def tagText(tokens : Seq[Token], featureFunc : (Token => CategoricalVectorVar[String]), tag : String) : Unit = {
     trie.lemmatizeAndTagMentions(tokens,featureFunc,tag,lemmatizer)
   }
