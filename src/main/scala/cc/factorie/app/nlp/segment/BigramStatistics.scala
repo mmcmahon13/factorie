@@ -1,4 +1,4 @@
-
+package cc.factorie.app.nlp.segment
 import cc.factorie.app.nlp.Document
 
 import scala.collection.mutable.ArrayBuffer
