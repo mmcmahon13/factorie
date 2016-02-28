@@ -1,25 +1,13 @@
-/* Copyright (C) 2008-2014 University of Massachusetts Amherst.
-   This file is part of "FACTORIE" (Factor graphs, Imperative, Extensible)
-   http://factorie.cs.umass.edu, http://github.com/factorie
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
-    http://www.apache.org/licenses/LICENSE-2.0
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License. */
-package cc.factorie.app.nlp.segment
+
 import cc.factorie.app.nlp.Document
 
 import scala.collection.mutable.ArrayBuffer
 
 /**
- * User: apassos
- * Date: 8/19/13
- * Time: 2:00 PM
- */
+  * User: apassos
+  * Date: 8/19/13
+  * Time: 2:00 PM
+  */
 class BigramStatistics {
   val wordCounts = new collection.mutable.LinkedHashMap[String, Int]()
   val bigramCounts = new collection.mutable.LinkedHashMap[(String,String),Int]()
@@ -81,6 +69,29 @@ class BigramStatistics {
       phraseStarts.getOrElse(token, Seq()).foreach(last => trigramPhrases += Seq(prev, token, last))
     })
     bigramPhrases.toSeq ++ trigramPhrases.toSeq
+  }
+
+  /** alternate scoring method for getting likely phrases - added by mmcmahon **/
+  def getLikelyBigramPhrases(delta: Double, scoreThreshold: Double = 100.0): Seq[Seq[String]] = {
+    val bigramPhrases = collection.mutable.LinkedHashSet[Seq[String]]()
+    val phraseStarts = collection.mutable.HashMap[String,ArrayBuffer[String]]()
+    bigramCounts.foreach({ case ((prev,token),count) =>
+      val pc = wordCounts(prev)
+      val pt = wordCounts(token)
+      val score =  (count.toDouble - delta) / (pc * pt)
+      if (score > scoreThreshold) {
+        bigramPhrases += Seq(prev,token)
+        phraseStarts.getOrElseUpdate(prev, new ArrayBuffer[String]).append(token)
+      }
+    })
+    // now we should have all interesting bigrams. I'll make the assumption that
+    // if A B and B C are interesting phrases then A B C is interesting without checking.
+    //    val trigramPhrases = collection.mutable.HashSet[Seq[String]]()
+    //    bigramPhrases.foreach({ case Seq(prev,token) =>
+    //      phraseStarts.getOrElse(token, Seq()).foreach(last => trigramPhrases += Seq(prev, token, last))
+    //    })
+    //    bigramPhrases.toSeq ++ trigramPhrases.toSeq
+    bigramPhrases.toSeq
   }
 
   def topMutualInformationBigrams(threshold: Int = 5): Seq[(String,String,Double)] = {
